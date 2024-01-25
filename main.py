@@ -11,7 +11,6 @@ from mingpt.utils import set_seed
 
 def create_embeddings(input="Michelle Jones was a top-notch student. Michelle", verbose=False):
     # Set seed to get statical results
-    set_seed(42)
     # Tokenize input string
     bpe = BPETokenizer()
     tokens = bpe(input)[0]
@@ -33,24 +32,70 @@ def create_embeddings(input="Michelle Jones was a top-notch student. Michelle", 
     # Process tokens
     x = bpe(input).to(device)
     x = x.expand(num_samples, -1)
-    # Obtainr results and internally save embeddings
+    # Obtain results and internally save embeddings
     y, logits = model.generate(x, max_new_tokens=20, do_sample=True, top_k=40, save_name="embeddings.pt")
 
-    values, indexes = torch.topk(logits, k=10)
+    values, indexes = torch.topk(logits, k=20)
+    out = bpe.decode(indexes.cpu().squeeze())
     if verbose:
         j = bpe(' Jones').item()
         v = logits[0][j]
         print("Jones value: ", v)
-        print(values)
+        print("Values: ", values)
         print(indexes)
-    out = bpe.decode(indexes.cpu().squeeze())
-    return out
+        print(out)
+    return indexes
+
+
+def test_model(corrupted_input="Michelle Smith was a top-notch student. Michelle", clean_indexes=None, verbose=False):
+    bpe = BPETokenizer()
+    tokens = bpe(corrupted_input)[0]
+    input_length = tokens.shape[-1]
+    tokens_str = [bpe.decode(torch.tensor([token])) for token in tokens]
+    if verbose:
+        print("Number of input tokens:", input_length)
+        print("Detokenized input from indices:", bpe.decode(tokens))
+        print("Detokenized input as strings: " + '/'.join(tokens_str))
+
+    #Create and select model
+    model_type = 'gpt2'
+    device = 'cpu'
+    model = GPT.from_pretrained(model_type)
+    model.to(device)
+    model.eval()
+
+    num_samples = 1
+    # Process tokens
+    x = bpe(corrupted_input).to(device)
+    x = x.expand(num_samples, -1)
+    # Obtain results and internally save embeddings
+    y, logits = model.generate(x, max_new_tokens=20, do_sample=True, top_k=40, save_name=None, layer = 0, pos = 1)
+
+    values = logits[0, clean_indexes]
+    # values, indexes = torch.topk(logits, k=10)
+    # out = bpe.decode(indexes.cpu().squeeze())
+    if verbose:
+        # j = bpe(' Jones').item()
+        # v = logits[0][j]
+        # print("Jones value: ", v)
+        print(" values: ", values)
+        # print(indexes)
+        # print(out)
+    # return out
+    return
+
+
+
+def main():
+    set_seed(3407)
+    indexes = create_embeddings(verbose=True)
+    # test_model(clean_indexes=indexes, verbose=True)
+
 
 
 
 if __name__ == '__main__':
-    out = create_embeddings(verbose=True)
-    print(out)
+    main()
 
 
 

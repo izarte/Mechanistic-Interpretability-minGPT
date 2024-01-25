@@ -264,7 +264,7 @@ class GPT(nn.Module):
     """
         If save_name is given, save embeddings, don't save if none is given
     """
-    def forward(self, idx, save_name=None, targets=None, layer = None, pos : list = 0):
+    def forward(self, idx, save_name=None, targets=None, layer = None, corrupted_pos : list = 0):
         device = idx.device
         b, t = idx.size()
         assert t <= self.block_size, f"Cannot forward sequence of length {t}, block size is only {self.block_size}"
@@ -276,12 +276,14 @@ class GPT(nn.Module):
         x = self.transformer.drop(tok_emb + pos_emb)
         i = 0
         tensor_dict = {}
+        tensor_list = []
         for block in self.transformer.h:
+            x = block(x)
             if layer is not None and i == layer:
                 loaded_dict = torch.load('embeddings.pt')
-                x[pos] = loaded_dict[layer, pos]
-            x = block(x)
-            tensor_dict[i] = x.clone()
+                x[:, corrupted_pos, :] = loaded_dict[layer][:, corrupted_pos, :]
+            # tensor_list.append(x[:, :t, :].detach().clone())
+            tensor_dict[i] = x.detach().clone()
             i += 1
         if save_name is not None:
             torch.save(tensor_dict, save_name)
@@ -305,7 +307,7 @@ class GPT(nn.Module):
             # if the sequence context is growing too long we must crop it at block_size
             idx_cond = idx if idx.size(1) <= self.block_size else idx[:, -self.block_size:]
             # forward the model to get the logits for the index in the sequence
-            logits, _ = self(idx_cond, save_name=save_name, layer=layer, pos=pos)
+            logits, _ = self(idx_cond, save_name=save_name, layer=layer, corrupted_pos=pos)
             # pluck the logits at the final step and scale by desired temperature
             logits = logits[:, -1, :] / temperature
             # optionally crop the logits to only the top k options
@@ -326,4 +328,4 @@ class GPT(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1)
 
         # print(next_possibilities)
-        return idx, probs
+        return idx, logits

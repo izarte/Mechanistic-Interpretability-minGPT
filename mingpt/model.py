@@ -274,19 +274,18 @@ class GPT(nn.Module):
         tok_emb = self.transformer.wte(idx) # token embeddings of shape (b, t, n_embd)
         pos_emb = self.transformer.wpe(pos) # position embeddings of shape (1, t, n_embd)
         x = self.transformer.drop(tok_emb + pos_emb)
-        i = 0
+        current_layer = 0
         tensor_dict = {}
-        tensor_list = []
         for block in self.transformer.h:
             x = block(x)
-            if layer is not None and i == layer:
+            if layer is not None and current_layer == layer:
                 loaded_dict = torch.load('embeddings.pt')
                 x[:, corrupted_pos, :] = loaded_dict[layer][:, corrupted_pos, :]
-            # tensor_list.append(x[:, :t, :].detach().clone())
-            tensor_dict[i] = x.detach().clone()
-            i += 1
+            tensor_dict[current_layer] = x.detach().clone()
+            current_layer += 1
         if save_name is not None:
             torch.save(tensor_dict, save_name)
+
         x = self.transformer.ln_f(x)
         logits = self.lm_head(x)
 
@@ -328,4 +327,4 @@ class GPT(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1)
 
         # print(next_possibilities)
-        return idx, logits
+        return idx, logits, probs

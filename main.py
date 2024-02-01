@@ -1,15 +1,13 @@
-from mingpt.bpe import BPETokenizer
+import sys
 import torch
-import matplotlib.pyplot as plt
 
-import torch
+from mingpt.bpe import BPETokenizer
 from mingpt.model import GPT
 from mingpt.utils import set_seed
 from mingpt.bpe import BPETokenizer
-from mingpt.utils import set_seed
 
-import sys
 from prettytable import PrettyTable
+import matplotlib.pyplot as plt
 
 
 def check_same_size(real, corrupted):
@@ -158,7 +156,6 @@ def main():
 
     create_embeddings(input=real, verbose=True)
     test_model(corrupted_input=corrupted,verbose=False, corrupted_token=corrupted_token, swapped_token=swapped_token)
-
 
 
 if __name__ == '__main__':

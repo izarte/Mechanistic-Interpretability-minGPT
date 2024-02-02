@@ -262,9 +262,13 @@ class GPT(nn.Module):
         return optimizer
 
     """
-        If save_name is given, save embeddings, don't save if none is given
+        Function to proccess tokens over transformer blocks
+        args:
+            -save_name: string, name for embeddings save file. If not given, no storage
+            -layer: int [0, 11], block level to make embedding swap. If not given, no swap
+            -corrutped_pos: int [0, token_length], number of token in sentence to swap.
     """
-    def forward(self, idx, save_name=None, targets=None, layer = None, corrupted_pos : list = 0):
+    def forward(self, idx, save_name : str = None, targets=None, layer : int = None, corrupted_pos : int = 0):
         device = idx.device
         b, t = idx.size()
         assert t <= self.block_size, f"Cannot forward sequence of length {t}, block size is only {self.block_size}"
@@ -274,15 +278,23 @@ class GPT(nn.Module):
         tok_emb = self.transformer.wte(idx) # token embeddings of shape (b, t, n_embd)
         pos_emb = self.transformer.wpe(pos) # position embeddings of shape (1, t, n_embd)
         x = self.transformer.drop(tok_emb + pos_emb)
+
+        # Variable to count each block layer
         current_layer = 0
+        # dictionary to store embeddings after each block
         tensor_dict = {}
         for block in self.transformer.h:
             x = block(x)
+            # If any layer value is given, embedding swap will be made
             if layer is not None and current_layer == layer:
+                # Load real embeddings. This is default name
                 loaded_dict = torch.load('embeddings.pt')
+                # Change current embeddings for layer and current_pos for loaded embeddings
                 x[:, corrupted_pos, :] = loaded_dict[layer][:, corrupted_pos, :]
+            # Storage embeddings 
             tensor_dict[current_layer] = x.detach().clone()
             current_layer += 1
+        # If file name is given, storage embeddings
         if save_name is not None:
             torch.save(tensor_dict, save_name)
 
@@ -295,6 +307,13 @@ class GPT(nn.Module):
             loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)
         return logits, loss
 
+    """
+        Function to generate new tokens
+        args:
+            -save_name: string, name for embeddings save file. If not given, no storage
+            -layer: int [0, 11], block level to make embedding swap. If not given, no swap
+            -pos: int [0, token_length], number of token in sentence to swap.
+    """
     @torch.no_grad()
     def generate(self, idx, max_new_tokens, temperature=1.0, do_sample=False, top_k=None, save_name=None, layer=None, pos=0):
         """

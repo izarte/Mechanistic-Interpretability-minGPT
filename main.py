@@ -10,8 +10,13 @@ from prettytable import PrettyTable
 import matplotlib.pyplot as plt
 import argparse
 
-
-def check_same_size(real, corrupted):
+"""
+    Function to check if real and corrupted sentences are same length after tokenization
+    args:
+        - real, string with real sentence
+        - corrupted, string with corrupted sentence
+"""
+def check_same_size(real : str, corrupted : str):
     bpe = BPETokenizer()
     real_tokens = bpe(real)[0]
     real_length = real_tokens.shape[-1]
@@ -28,9 +33,13 @@ def check_same_size(real, corrupted):
         print("corrupted tokens: " + '/'.join(corrupted_tokens_str))
         sys.exit()
 
-
+"""
+    Function to save embeddings of real sentence
+    args:
+        -input, sentence to save embeddings
+        -verbose, bool, True for print tokenized sentence and table 
+"""
 def create_embeddings(input="Michelle Jones was a top-notch student. Michelle", verbose=False):
-    # Set seed to get statical results
     # Tokenize input string
     bpe = BPETokenizer()
     tokens = bpe(input)[0]
@@ -58,6 +67,7 @@ def create_embeddings(input="Michelle Jones was a top-notch student. Michelle", 
 
     print(indexes[0, 1].item())
 
+    # Create a table with 20 most probable tokens
     table = PrettyTable()
     table.field_names = ["Position", "Token index", "Token", "Probability"]
     for i in range(0, 20):
@@ -69,8 +79,20 @@ def create_embeddings(input="Michelle Jones was a top-notch student. Michelle", 
 
     return 
 
-
-def test_model(corrupted_input="Michelle Smith was a top-notch student. Michelle", verbose=False, corrupted_token = None, swapped_token = None):
+"""
+    Function to get corrupted logits after a swap in each layer for each token and obtain heat map with prob difference
+    args:
+        - corrupted_input, string with corrupted sentence
+        - verbose, bool, True for print tokenized sentence
+        - corrupted_token, int, index of corrupted token. The one that differs in corrupted sentence from real sentence
+        - swapped_token, int, index of real token that is swapped during execution. The one in real sentence
+"""
+def test_model(
+        corrupted_input : str ="Michelle Smith was a top-notch student. Michelle",
+        verbose : bool = False,
+        corrupted_token : int = None,
+        swapped_token : int = None
+    ):
     bpe = BPETokenizer()
     tokens = bpe(corrupted_input)[0]
     input_length = tokens.shape[-1]

@@ -8,6 +8,7 @@ from mingpt.bpe import BPETokenizer
 
 from prettytable import PrettyTable
 import matplotlib.pyplot as plt
+import argparse
 
 
 def check_same_size(real, corrupted):
@@ -87,7 +88,6 @@ def test_model(corrupted_input="Michelle Smith was a top-notch student. Michelle
     model.eval()
 
 
-
     corrupted_index = bpe(corrupted_token).item()
     swapped_index = bpe(swapped_token).item()
 
@@ -130,28 +130,43 @@ def test_model(corrupted_input="Michelle Smith was a top-notch student. Michelle
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Create and save a table.")
+    parser.add_argument('-c', '--check_tables', action='store_true', help='Print next token logits for each sentence', default=False)
+    # Parse command-line arguments
+    args = parser.parse_args()
+
     set_seed(3407)
 
-    # warm-cold
-    # real = "In winter temperature is cold, in summer it is"
-    # corrupted = "In winter temperature is warm, in summer it is"
-
-    # jackson-jordan
-    # real = "Michael Jordan is a player. Michael"
-    # corrupted = "Michael Jackson is a player. Michael"
+    # Jersey-York
+    real = "Every summer I go to New York. In New"
+    corrupted = "Every summer I go to New Jersey. In New"
+    # Must be blank space at start
+    corrupted_token = " Jersey"
+    swapped_token = " York"
 
     # green-purple
     # real = "Red and blue turns in purple. Yellow and blue turns in"
     # corrupted = "Red and blue turns in green. Yellow and blue turns in"
+    # corrupted_token = " green"
+    # swapped_token = " purple"
+
+    # throat-stomach
+    # real = "The patient is vomiting. The patient has pain in his"
+    # corrupted = "The patient is coughing. The patient has pain in his"
+    # corrupted_token = " coughing"
+    # swapped_token = " vomiting"
 
     # sink-float World knowledge
-    real = "I have a boat made with wood, in water the boat will"
-    corrupted = "I have a boat made with iron, in water the boat will"
+    # real = "I have a boat made with wood, in water the boat will"
+    # corrupted = "I have a boat made with iron, in water the boat will"
+    # corrupted_token = " sink"
+    # swapped_token = " float"
     
-    # Must be blank space at start
-    corrupted_token = " sink"
-    swapped_token = " float"
-    
+    if args.check_tables:
+        create_embeddings(input=real, verbose=True)
+        create_embeddings(input=corrupted, verbose=True)
+        return
+
     check_same_size(real=real, corrupted=corrupted)
 
     create_embeddings(input=real, verbose=True)
